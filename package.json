@@ -8,6 +8,7 @@
     "lint": "eslint 'src/**.js' 'tests/**.js' --fix",
     "test": "eslint 'src/**.js' 'tests/**.js' && jest --coverage",
     "build": "ncc build src/main.js",
+    "release": "bumpp package.json --commit --push --tag",
     "precommit": "npm run build && git add dist/"
   },
   "repository": {
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@vercel/ncc": "^0.36.1",
+    "bumpp": "^9.1.0",
     "eslint": "^8.41.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-import": "^2.27.5",
