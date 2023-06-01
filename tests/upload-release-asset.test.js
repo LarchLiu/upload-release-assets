@@ -1,10 +1,10 @@
 const mock = require('mock-fs');
+const core = require('@actions/core');
+const github = require('@actions/github');
+const run = require('../src/upload-release-asset');
+
 jest.mock('@actions/core');
 jest.mock('@actions/github');
-
-const core = require('@actions/core');
-const { GitHub, context } = require('@actions/github');
-const run = require('../src/upload-release-asset');
 
 const textFileContents = 'file content here';
 const fakeFileSystem = {
@@ -41,18 +41,20 @@ describe('Upload Release Asset', () => {
 
     mock(fakeFileSystem);
 
-    context.repo = {
+    github.context.repo = {
       owner: 'owner',
       repo: 'repo'
     };
 
-    const github = {
-      repos: {
-        uploadReleaseAsset
+    const octokit = {
+      rest: {
+        repos: {
+          uploadReleaseAsset
+        }
       }
     };
 
-    GitHub.mockImplementation(() => github);
+    github.getOctokit.mockImplementation(() => octokit);
   });
 
   afterEach(() => {
@@ -62,7 +64,8 @@ describe('Upload Release Asset', () => {
   test('Upload release asset endpoint is called', async () => {
     core.getInput = jest
       .fn()
-      .mockReturnValueOnce('upload_url')
+      .mockReturnValueOnce('owner/repo')
+      .mockReturnValueOnce(123)
       .mockReturnValueOnce('single_file_folder_asset_path/singlefile.js') // asset_path
       .mockReturnValueOnce('asset_name')
       .mockReturnValueOnce('asset_content_type');
@@ -70,17 +73,20 @@ describe('Upload Release Asset', () => {
     await run();
 
     expect(uploadReleaseAsset).toHaveBeenCalledWith({
-      url: 'upload_url',
+      owner: 'owner',
+      repo: 'repo',
+      release_id: 123,
       headers: { 'content-type': 'asset_content_type', 'content-length': 17 },
       name: 'asset_name',
-      file: Buffer.from(textFileContents)
+      data: Buffer.from(textFileContents)
     });
   });
 
   test('Get name from file', async () => {
     core.getInput = jest
       .fn()
-      .mockReturnValueOnce('upload_url')
+      .mockReturnValueOnce('owner/repo')
+      .mockReturnValueOnce(123)
       .mockReturnValueOnce('single_file_folder_asset_path/singlefile.js') // asset_path
       .mockReturnValueOnce(undefined) // asset_name
       .mockReturnValueOnce('asset_content_type');
@@ -88,17 +94,20 @@ describe('Upload Release Asset', () => {
     await run();
 
     expect(uploadReleaseAsset).toHaveBeenCalledWith({
-      url: 'upload_url',
+      owner: 'owner',
+      repo: 'repo',
+      release_id: 123,
       headers: { 'content-type': 'asset_content_type', 'content-length': 17 },
       name: 'singlefile.js',
-      file: Buffer.from(textFileContents)
+      data: Buffer.from(textFileContents)
     });
   });
 
   test('Get type from file', async () => {
     core.getInput = jest
       .fn()
-      .mockReturnValueOnce('upload_url')
+      .mockReturnValueOnce('owner/repo')
+      .mockReturnValueOnce(123)
       .mockReturnValueOnce('single_file_folder_asset_path/singlefile.js') // asset_path
       .mockReturnValueOnce('asset_name')
       .mockReturnValueOnce(undefined); // asset_content_type
@@ -106,17 +115,20 @@ describe('Upload Release Asset', () => {
     await run();
 
     expect(uploadReleaseAsset).toHaveBeenCalledWith({
-      url: 'upload_url',
+      owner: 'owner',
+      repo: 'repo',
+      release_id: 123,
       headers: { 'content-type': 'application/javascript', 'content-length': 17 },
       name: 'asset_name',
-      file: Buffer.from(textFileContents)
+      data: Buffer.from(textFileContents)
     });
   });
 
   test('Just upload exe files recursively, get type from file', async () => {
     core.getInput = jest
       .fn()
-      .mockReturnValueOnce('upload_url')
+      .mockReturnValueOnce('owner/repo')
+      .mockReturnValueOnce(123)
       .mockReturnValueOnce('**/*.exe') // asset_path
       .mockReturnValueOnce(undefined) // asset_name
       .mockReturnValueOnce(undefined); // asset_content_type
@@ -128,24 +140,29 @@ describe('Upload Release Asset', () => {
     expect(uploadReleaseAsset).toHaveBeenCalledTimes(2);
 
     expect(uploadReleaseAsset).toHaveBeenNthCalledWith(1, {
-      url: 'upload_url',
+      owner: 'owner',
+      repo: 'repo',
+      release_id: 123,
       headers: { 'content-type': 'application/x-msdos-program', 'content-length': 7 },
       name: 'test.exe',
-      file: fakeFileSystem['some_build']['test.exe']
+      data: fakeFileSystem['some_build']['test.exe']
     });
 
     expect(uploadReleaseAsset).toHaveBeenNthCalledWith(2, {
-      url: 'upload_url',
+      owner: 'owner',
+      repo: 'repo',
+      release_id: 123,
       headers: { 'content-type': 'application/x-msdos-program', 'content-length': 7 },
       name: 'test2.exe',
-      file: fakeFileSystem['some_build']['test2.exe']
+      data: fakeFileSystem['some_build']['test2.exe']
     });
   });
 
   test('Output is set with two files in a folder', async () => {
     core.getInput = jest
       .fn()
-      .mockReturnValueOnce('upload_url')
+      .mockReturnValueOnce('owner/repo')
+      .mockReturnValueOnce(123)
       .mockReturnValueOnce('double_file_folder_asset_path') // asset_path
       .mockReturnValueOnce('asset_name')
       .mockReturnValueOnce('asset_content_type');
@@ -163,7 +180,8 @@ describe('Upload Release Asset', () => {
   test('Action fails elegantly', async () => {
     core.getInput = jest
       .fn()
-      .mockReturnValueOnce('upload_url')
+      .mockReturnValueOnce('owner/repo')
+      .mockReturnValueOnce(123)
       .mockReturnValueOnce('single_file_folder_asset_path') // asset_path
       .mockReturnValueOnce('asset_name')
       .mockReturnValueOnce('asset_content_type');

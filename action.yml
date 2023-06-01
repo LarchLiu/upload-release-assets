@@ -2,8 +2,11 @@ name: 'Upload Release Asset(s)'
 description: 'Upload release assets to an existing release in your repository. Uses the same file search logic as actions/upload-artifact'
 author: 'GitHub'
 inputs:
-  upload_url:
-    description: 'The URL for uploading assets to the release.'
+  repository:
+    description: 'The repository for uploading assets.'
+    required: true
+  release_id:
+    description: 'The release id of repo.'
     required: true
   asset_path:
     description: 'The path to the asset you want to upload'
